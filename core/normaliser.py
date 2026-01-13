@@ -2,6 +2,7 @@
 Normalises raw scraper items into locked v1 Typesense documents.
 """
 
+import time
 from typing import Dict, Any, Optional
 
 from core.schema import build_typesense_document
@@ -37,6 +38,13 @@ def normalise_item(
         return None  # drop item
 
     # -------------------------
+    # 🚫 Drop ended auctions (safety guard)
+    # -------------------------
+    now = int(time.time())
+    if end_timestamp < now:
+        return None
+
+    # -------------------------
     # Price selection
     # -------------------------
     price = (
@@ -70,3 +78,5 @@ def normalise_item(
         )
     except Exception as e:
         raise NormalisationError(str(e))
+
+
