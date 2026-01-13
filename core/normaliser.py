@@ -1,0 +1,72 @@
+"""
+Normalises raw scraper items into locked v1 Typesense documents.
+"""
+
+from typing import Dict, Any, Optional
+
+from core.schema import build_typesense_document
+
+
+class NormalisationError(Exception):
+    pass
+
+
+def normalise_item(
+    raw: Dict[str, Any],
+    *,
+    auctioneer: str,
+    default_currency: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Convert a raw scraper item into a Typesense document.
+
+    Returns:
+    - Typesense document dict
+    - None if item should be dropped
+    """
+
+    # -------------------------
+    # Required raw fields
+    # -------------------------
+    title = raw.get("title")
+    image_url = raw.get("image_url")
+    product_url = raw.get("product_url")
+    end_timestamp = raw.get("end_timestamp")
+
+    if not all([title, image_url, product_url, end_timestamp]):
+        return None  # drop item
+
+    # -------------------------
+    # Price selection
+    # -------------------------
+    price = (
+        raw.get("price_current")
+        or raw.get("price_start")
+        or raw.get("price_estimate_low")
+    )
+
+    if price is None:
+        return None
+
+    # -------------------------
+    # Currency
+    # -------------------------
+    currency = raw.get("price_currency") or default_currency
+    if not currency:
+        return None
+
+    # -------------------------
+    # Build Typesense document
+    # -------------------------
+    try:
+        return build_typesense_document(
+            title=title,
+            auctioneer=auctioneer,
+            image_url=image_url,
+            product_url=product_url,
+            price_current=price,
+            price_currency=currency,
+            end_timestamp=end_timestamp,
+        )
+    except Exception as e:
+        raise NormalisationError(str(e))
