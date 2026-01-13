@@ -44,14 +44,17 @@ def normalise_item(
     if end_timestamp < now:
         return None
 
-    # -------------------------
+      # -------------------------
     # Price selection
     # -------------------------
-    price = (
-        raw.get("price_current")
-        or raw.get("price_start")
-        or raw.get("price_estimate_low")
-    )
+    price = None
+
+    if raw.get("price_current", 0) > 0:
+        price = raw["price_current"]
+    elif raw.get("price_start", 0) > 0:
+        price = raw["price_start"]
+    elif raw.get("price_estimate_low", 0) > 0:
+        price = raw["price_estimate_low"]
 
     if price is None:
         return None
